@@ -1,3 +1,4 @@
+cd /d "%~dp0"
 @echo off
 title [Server] Aplikasi Operasi Toko
 color 0B
@@ -20,8 +21,11 @@ echo.
 
 where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo [ERROR] Node.js belum terpasang di komputer ini!
-    echo Silakan pasang Node.js terlebih dahulu.
+    echo [PERHATIAN] Node.js belum terpasang di komputer ini!
+    echo Silakan download dan install Node.js (gratis) di:
+    echo https://nodejs.org (Pilih yang bertuliskan "LTS")
+    echo Setelah di-install, buka kembali file ini.
+    echo.
     pause
     exit /b
 )
