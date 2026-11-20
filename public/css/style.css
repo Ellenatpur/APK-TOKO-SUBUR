@@ -1,0 +1,184 @@
+/* Custom Styles & Receipt Thermal Print */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.mono-font {
+  font-family: 'JetBrains Mono', monospace, Consolas, Courier, monospace;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Card hover transitions */
+.hover-card {
+  transition: all 0.2s ease-in-out;
+}
+.hover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Active navigation tab */
+.nav-tab.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+}
+
+/* Badge Profit */
+.badge-profit-high {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.badge-profit-warning {
+  background-color: #fef9c3;
+  color: #a16207;
+  border: 1px solid #fef08a;
+}
+.badge-profit-low {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Quick Cash Buttons */
+.quick-cash-btn {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.quick-cash-btn:hover {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* Modal styling */
+.modal-overlay {
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+/* Toast Notifications */
+#toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  padding: 12px 18px;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+  animation: slideIn 0.25s ease-out;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 380px;
+}
+.toast-success { background-color: #10b981; }
+.toast-error { background-color: #ef4444; }
+.toast-info { background-color: #3b82f6; }
+.toast-warning { background-color: #f59e0b; }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ============================================================== */
+/* THERMAL RECEIPT PRINTING STYLES (58mm / 80mm & Normal Paper)  */
+/* ============================================================== */
+#receipt-print-area {
+  display: none;
+}
+
+@media print {
+  /* Hide all app UI */
+  body * {
+    visibility: hidden;
+  }
+  
+  #receipt-print-area, #receipt-print-area * {
+    visibility: visible;
+  }
+
+  #receipt-print-area {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+    font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .thermal-receipt {
+    width: 58mm; /* Defaults to 58mm POS printer or adjusts on print */
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 4mm 2mm;
+  }
+
+  .thermal-receipt.size-80mm {
+    width: 80mm;
+    font-size: 12px;
+  }
+
+  .thermal-receipt hr {
+    border: none;
+    border-top: 1px dashed #000;
+    margin: 6px 0;
+  }
+
+  .receipt-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  .receipt-table td {
+    padding: 2px 0;
+    vertical-align: top;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+  .text-center {
+    text-align: center;
+  }
+}

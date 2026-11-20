@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Uploads & Temporary files
+temp_uploads/
+*.log
+
+# SQLite Temporary files
+*.db-wal
+*.db-shm
+*.bak

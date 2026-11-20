@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Operasi Toko & Kasir</title>
+  <link rel="stylesheet" href="css/tailwind.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Chart.js local script for 100% offline support -->
+  <script src="js/chart.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800 flex flex-col">
+
+  <!-- TOP HEADER & BRAND -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Store Name -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow">
+            🏪
+          </div>
+          <div>
+            <h1 id="store-brand-name" class="font-bold text-lg text-gray-900 leading-tight">TOKO SAYA</h1>
+            <p class="text-xs text-gray-500 font-medium">Sistem Operasi, Stok, Struk & Laba Bersih</p>
+          </div>
+        </div>
+
+        <!-- Realtime Clock / Date -->
+        <div class="hidden md:flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600">
+          <span>📅</span>
+          <span id="current-date-display"></span>
+        </div>
+      </div>
+
+      <!-- MAIN NAVIGATION TABS -->
+      <nav class="flex space-x-1 sm:space-x-2 border-t border-gray-100 py-1.5 overflow-x-auto text-xs sm:text-sm font-semibold">
+        <button class="nav-tab active px-3.5 py-2 rounded-lg flex items-center gap-2 transition" data-tab="pos">
+          <span>🛒</span> Kasir (POS)
+        </button>
+        <button class="nav-tab px-3.5 py-2 rounded-lg flex items-center gap-2 transition text-gray-700 hover:bg-gray-100" data-tab="products">
+          <span>📦</span> Produk & Stok
+        </button>
+        <button class="nav-tab px-3.5 py-2 rounded-lg flex items-center gap-2 transition text-gray-700 hover:bg-gray-100" data-tab="purchases">
+          <span>📥</span> Pembelian & Restok
+        </button>
+        <button class="nav-tab px-3.5 py-2 rounded-lg flex items-center gap-2 transition text-gray-700 hover:bg-gray-100" data-tab="mutations">
+          <span>🔄</span> Keluar Masuk (Mutasi)
+        </button>
+        <button class="nav-tab px-3.5 py-2 rounded-lg flex items-center gap-2 transition text-gray-700 hover:bg-gray-100" data-tab="sales-history">
+          <span>🧾</span> Riwayat Struk
+        </button>
+        <button class="nav-tab px-3.5 py-2 rounded-lg flex items-center gap-2 transition text-gray-700 hover:bg-gray-100" data-tab="reports">
+          <span>📊</span> Rekap & Laba Rugi
+        </button>
+        <button class="nav-tab px-3.5 py-2 rounded-lg flex items-center gap-2 transition text-gray-700 hover:bg-gray-100" data-tab="settings">
+          <span>⚙️</span> Pengaturan
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full">
+
+    <!-- ============================================================== -->
+    <!-- TAB 1: KASIR (POINT OF SALE)                                   -->
+    <!-- ============================================================== -->
+    <section id="panel-pos" class="tab-panel">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        <!-- LEFT SIDE: PRODUCT SEARCH & CART (8 COLS) -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
+          <!-- SEARCH & BARCODE SCANNER BAR -->
+          <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative">
+            <div class="flex flex-col sm:flex-row items-center gap-3">
+              <div class="relative flex-1 w-full">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">🔍</span>
+                <input type="text" id="pos-search-input" autofocus autocomplete="off"
+                       placeholder="Ketik nama barang (contoh: Surya, Aqua, Indomie, Paracetamol)..."
+                       class="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+              </div>
+
+              <!-- GLOBAL PRICE TIER TOGGLE -->
+              <div class="flex items-center gap-2 self-end sm:self-center">
+                <button id="pos-global-tier-btn" class="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-300 text-xs font-bold transition">
+                  <span>🏷️</span>
+                  <span id="pos-global-tier-badge" class="px-2 py-0.5 rounded-full bg-blue-600 text-white">MODE ECERAN</span>
+                </button>
+                <button id="pos-apply-all-tier-btn" class="px-2.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 text-xs font-semibold" title="Terapkan harga ini ke semua barang di keranjang">
+                  Terapkan Semua
+                </button>
+              </div>
+            </div>
+
+            <!-- SEARCH RESULTS AUTOCOMPLETE DROPDOWN -->
+            <div id="pos-search-results" class="hidden absolute left-4 right-4 top-16 bg-white border border-gray-200 rounded-lg shadow-xl z-20 max-h-80 overflow-y-auto"></div>
+          </div>
+
+          <!-- CART TABLE -->
+          <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col flex-1">
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-gray-800 text-sm">🛒 Keranjang Belanja</span>
+                <span class="text-xs text-gray-500">(Bisa atur harga Eceran / Grosir per barang)</span>
+              </div>
+              <button id="pos-clear-cart-btn" class="text-xs text-red-600 hover:text-red-800 font-semibold">
+                Kosongkan Keranjang
+              </button>
+            </div>
+
+            <div class="overflow-x-auto flex-1 min-h-[320px]">
+              <table class="w-full text-left">
+                <thead class="bg-gray-100 text-[11px] font-bold text-gray-600 uppercase tracking-wider border-b">
+                  <tr>
+                    <th class="py-2.5 px-3">Produk & Modal</th>
+                    <th class="py-2.5 px-2 text-center w-28">Jumlah</th>
+                    <th class="py-2.5 px-3 w-40">Tipe / Harga Jual</th>
+                    <th class="py-2.5 px-3 text-right">Subtotal</th>
+                    <th class="py-2.5 px-3 text-right">Untung Item</th>
+                    <th class="py-2.5 px-2 text-center w-10"></th>
+                  </tr>
+                </thead>
+                <tbody id="pos-cart-tbody" class="divide-y divide-gray-100"></tbody>
+              </table>
+
+              <!-- EMPTY CART NOTICE -->
+              <div id="pos-cart-empty" class="p-12 text-center text-gray-400">
+                <div class="text-4xl mb-2">🛒</div>
+                <div class="font-semibold text-gray-600 text-sm">Keranjang Belanja Masih Kosong</div>
+                <div class="text-xs text-gray-400 mt-1">Cari nama barang atau scan barcode di kotak pencarian di atas.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT SIDE: SUMMARY, PROFIT & PAYMENT (4 COLS) -->
+        <div class="lg:col-span-4 flex flex-col gap-4">
+          <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-4">
+            
+            <!-- CUSTOMER NAME -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-700 mb-1">Nama Pelanggan / Catatan:</label>
+              <input type="text" id="pos-customer-name" value="Pelanggan Umum"
+                     class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium">
+            </div>
+
+            <!-- FINANCIAL BREAKDOWN & REALTIME PROFIT -->
+            <div class="p-3.5 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2 text-sm">
+              <div class="flex justify-between text-gray-600">
+                <span>Total Omset (Penjualan):</span>
+                <span id="pos-total-omset" class="font-bold text-gray-900">Rp 0</span>
+              </div>
+              <div class="flex justify-between text-gray-500 text-xs">
+                <span>Total Modal (HPP):</span>
+                <span id="pos-total-cost" class="font-semibold text-gray-700">Rp 0</span>
+              </div>
+              
+              <!-- HIGHLIGHTED LIVE PROFIT -->
+              <div class="pt-2 border-t border-blue-200 flex items-center justify-between">
+                <div>
+                  <div class="font-black text-xs text-green-800 uppercase tracking-wide">Estimasi Keuntungan:</div>
+                  <div class="text-[10px] text-gray-500">(Laba Bersih Penjualan)</div>
+                </div>
+                <div id="pos-net-profit" class="text-xl font-bold text-green-600">+Rp 0</div>
+              </div>
+            </div>
+
+            <!-- DISCOUNT & FINAL TOTAL -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between gap-3">
+                <label class="text-xs font-semibold text-gray-700">Potongan / Diskon (Rp):</label>
+                <input type="number" id="pos-discount" min="0" value="0"
+                       class="w-32 px-3 py-1 text-right border border-gray-300 rounded-lg text-sm font-semibold focus:ring-1 focus:ring-blue-500">
+              </div>
+
+              <!-- BIG GRAND TOTAL -->
+              <div class="p-3.5 bg-gray-900 text-white rounded-xl flex items-center justify-between shadow-inner">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-300">Total Akhir:</span>
+                <span id="pos-grand-total" class="text-2xl font-black text-white">Rp 0</span>
+              </div>
+            </div>
+
+            <!-- PAYMENT CONTROLS -->
+            <div class="space-y-3 pt-2 border-t border-gray-100">
+              <div class="flex items-center justify-between gap-2">
+                <label class="text-xs font-semibold text-gray-700">Metode Bayar:</label>
+                <select id="pos-payment-method" class="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs font-bold text-gray-800 bg-white">
+                  <option value="TUNAI">TUNAI</option>
+                  <option value="TRANSFER">TRANSFER BANK</option>
+                  <option value="QRIS">QRIS</option>
+                </select>
+              </div>
+
+              <!-- CASH PAID INPUT -->
+              <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Nominal Uang Diterima:</label>
+                <input type="number" id="pos-cash-paid" placeholder="Masukkan jumlah bayar..."
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-base font-bold text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <!-- QUICK CASH BUTTONS -->
+              <div class="grid grid-cols-3 gap-1.5 text-xs font-semibold">
+                <button type="button" onclick="POS.setQuickCash('pas')" class="quick-cash-btn py-1.5 rounded">Uang Pas</button>
+                <button type="button" onclick="POS.setQuickCash(20000)" class="quick-cash-btn py-1.5 rounded">20.000</button>
+                <button type="button" onclick="POS.setQuickCash(50000)" class="quick-cash-btn py-1.5 rounded">50.000</button>
+                <button type="button" onclick="POS.setQuickCash(100000)" class="quick-cash-btn py-1.5 rounded">100.000</button>
+                <button type="button" onclick="POS.setQuickCash(200000)" class="quick-cash-btn py-1.5 rounded">200.000</button>
+                <button type="button" onclick="POS.setQuickCash(500000)" class="quick-cash-btn py-1.5 rounded">500.000</button>
+              </div>
+
+              <!-- CHANGE RETURNED -->
+              <div class="p-3 bg-gray-100 rounded-xl flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-600">Kembalian:</span>
+                <span id="pos-change-returned" class="text-lg font-bold text-gray-900">Rp 0</span>
+              </div>
+            </div>
+
+            <!-- CHECKOUT BUTTONS -->
+            <div class="flex flex-col gap-2 pt-2">
+              <button id="pos-btn-pay-print" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                <span>🧾</span> Bayar & Cetak Struk
+              </button>
+              <button id="pos-btn-pay-only" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                <span>💾</span> Simpan Saja (Tanpa Struk)
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 2: PRODUK & STOK                                           -->
+    <!-- ============================================================== -->
+    <section id="panel-products" class="tab-panel hidden space-y-5">
+      <!-- METRIC CARDS -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div class="text-xs text-gray-500 font-semibold">Total Item Produk</div>
+          <div id="metric-total-products" class="text-2xl font-bold text-gray-900 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div class="text-xs text-gray-500 font-semibold">Total Stok Fisik</div>
+          <div id="metric-total-stock" class="text-2xl font-bold text-blue-600 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div class="text-xs text-gray-500 font-semibold">Total Nilai Modal Aset</div>
+          <div id="metric-total-assets" class="text-xl font-bold text-purple-700 mt-1">Rp 0</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div class="text-xs text-gray-500 font-semibold">Produk Stok Menipis</div>
+          <div id="metric-low-stock" class="text-2xl font-bold text-red-600 mt-1">0</div>
+        </div>
+      </div>
+
+      <!-- FILTER & ACTIONS BAR -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <input type="text" id="prod-search" placeholder="Cari nama produk..."
+                 class="px-3.5 py-2 border border-gray-300 rounded-lg text-sm w-full sm:w-56 focus:ring-1 focus:ring-blue-500">
+          
+          <select id="prod-unit-filter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-bold text-gray-800">
+            <option value="Semua">Semua Satuan</option>
+            <option value="Pres">🚬 Pres (Rokok)</option>
+            <option value="Box">💊 Box (Obat & Jajan)</option>
+            <option value="Dus">📦 Dus (Aqua/Mie/Minuman)</option>
+            <option value="Biji">🔵 Biji (Eceran)</option>
+          </select>
+
+          <select id="prod-category-filter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium">
+            <option value="Semua">Semua Kategori</option>
+          </select>
+
+          <label class="inline-flex items-center text-xs font-semibold text-gray-700 cursor-pointer">
+            <input type="checkbox" id="prod-low-stock-check" class="rounded text-red-600 focus:ring-red-500 w-4 h-4">
+            <span class="ml-1.5">Hanya Stok Menipis</span>
+          </label>
+        </div>
+
+        <div class="flex items-center gap-2 self-end sm:self-center">
+          <a href="/api/products/export/excel" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold border border-gray-300 flex items-center gap-1.5 transition">
+            <span>📥</span> Ekspor Excel
+          </a>
+          <button onclick="ProductsManager.openAddModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition flex items-center gap-1.5">
+            <span>➕</span> Tambah Produk Baru
+          </button>
+        </div>
+      </div>
+
+      <!-- PRODUCTS TABLE -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="bg-gray-100 text-xs font-bold text-gray-600 uppercase tracking-wider border-b">
+              <tr>
+                <th class="py-3 px-3">Satuan</th>
+                <th class="py-3 px-3">Nama Produk & Kategori</th>
+                <th class="py-3 px-3">Modal (HPP) ✏️</th>
+                <th class="py-3 px-3">Harga Eceran (+Laba)</th>
+                <th class="py-3 px-3">Harga Grosir (+Laba)</th>
+                <th class="py-3 px-3">Stok Fisik ✏️</th>
+                <th class="py-3 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="products-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+
+          <div id="products-empty" class="p-10 text-center text-gray-400 hidden">
+            <div class="text-3xl mb-1">📦</div>
+            <div>Tidak ada produk yang cocok dengan pencarian.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 3: PEMBELIAN & RESTOK (KULAKAN)                             -->
+    <!-- ============================================================== -->
+    <section id="panel-purchases" class="tab-panel hidden space-y-6">
+      
+      <!-- NEW RESTOCK FORM -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div>
+            <h3 class="font-bold text-gray-900 text-base">📥 Catat Pembelian / Restok Barang Masuk (Kulakan)</h3>
+            <p class="text-xs text-gray-500">Ketahui modal per barang setiap kali kulakan. Stok otomatis bertambah dan modal terbaru tersimpan.</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 bg-green-100 text-green-800 font-bold rounded-full">Stok Masuk (+)</span>
+        </div>
+
+        <!-- HEADER INFO -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">No. Faktur / Bon Pembelian:</label>
+            <input type="text" id="purchase-invoice-no" placeholder="Otomatis (contoh: PB-20261118-0001)"
+                   class="w-full px-3 py-1.5 border border-gray-300 rounded-lg font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Nama Supplier / Grosir:</label>
+            <input type="text" id="purchase-supplier" placeholder="Contoh: Toko Grosir Sumber Makmur"
+                   class="w-full px-3 py-1.5 border border-gray-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Tanggal Pembelian:</label>
+            <input type="date" id="purchase-date" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Catatan Tambahan:</label>
+            <input type="text" id="purchase-notes" placeholder="Catatan supplier, no resi, dll..."
+                   class="w-full px-3 py-1.5 border border-gray-300 rounded-lg">
+          </div>
+        </div>
+
+        <!-- SEARCH TO ADD PRODUCTS -->
+        <div class="relative pt-2">
+          <label class="block text-xs font-bold text-gray-700 mb-1">🔍 Cari Barang yang Dibeli:</label>
+          <input type="text" id="purchase-prod-search" autocomplete="off"
+                 placeholder="Ketik nama produk atau barcode untuk menambahkan ke daftar pembelian..."
+                 class="w-full px-3.5 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:ring-1 focus:ring-green-500">
+          <div id="purchase-search-results" class="hidden absolute left-0 right-0 top-16 bg-white border border-gray-200 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto"></div>
+        </div>
+
+        <!-- PURCHASE ITEMS TABLE -->
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-gray-100 text-gray-700 uppercase font-bold border-b">
+              <tr>
+                <th class="py-2.5 px-3">Nama Produk</th>
+                <th class="py-2.5 px-2 text-center w-28">Jumlah Beli</th>
+                <th class="py-2.5 px-3 w-48">Modal Beli Baru / Item (Rp)</th>
+                <th class="py-2.5 px-3 text-center w-28">Update Modal Master</th>
+                <th class="py-2.5 px-3 text-right">Subtotal</th>
+                <th class="py-2.5 px-2 text-center w-10"></th>
+              </tr>
+            </thead>
+            <tbody id="purchase-items-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+          <div id="purchase-items-empty" class="p-8 text-center text-gray-400">
+            Pilih barang di atas untuk menambahkan daftar kulakan.
+          </div>
+        </div>
+
+        <!-- TOTAL & SAVE BUTTON -->
+        <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-gray-600">Total Tagihan Pembelian:</span>
+            <span id="purchase-grand-total" class="text-xl font-black text-gray-900">Rp 0</span>
+          </div>
+          <button id="btn-save-purchase" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+            <span>💾</span> Simpan Pembelian & Update Stok
+          </button>
+        </div>
+      </div>
+
+      <!-- PURCHASE HISTORY TABLE -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+        <h4 class="font-bold text-gray-800 text-sm">Riwayat Pembelian Sebelumnya</h4>
+        <div class="border border-gray-200 rounded-lg overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-gray-100 text-gray-700 uppercase font-bold border-b">
+              <tr>
+                <th class="py-2.5 px-3">No. Faktur</th>
+                <th class="py-2.5 px-3">Tanggal</th>
+                <th class="py-2.5 px-3">Supplier</th>
+                <th class="py-2.5 px-3 text-right">Total Pembelian</th>
+                <th class="py-2.5 px-3">Catatan</th>
+                <th class="py-2.5 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="purchase-history-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+          <div id="purchase-history-empty" class="p-6 text-center text-gray-400 hidden">
+            Belum ada riwayat pembelian.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 4: KELUAR MASUK (MUTASI STOK)                              -->
+    <!-- ============================================================== -->
+    <section id="panel-mutations" class="tab-panel hidden space-y-5">
+      <!-- CONTROLS & FILTER -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto text-xs">
+          <input type="text" id="mutation-search" placeholder="Cari barang / nota..."
+                 class="px-3 py-1.5 border border-gray-300 rounded-lg font-medium">
+          
+          <select id="mutation-type-filter" class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white font-semibold">
+            <option value="Semua">Semua Jenis (Masuk & Keluar)</option>
+            <option value="MASUK">Hanya Masuk (+)</option>
+            <option value="KELUAR">Hanya Keluar (-)</option>
+          </select>
+
+          <select id="mutation-reason-filter" class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white font-semibold">
+            <option value="Semua">Semua Alasan</option>
+            <option value="PEMBELIAN">Pembelian (Kulakan)</option>
+            <option value="PENJUALAN">Penjualan (Kasir)</option>
+            <option value="PENYESUAIAN">Penyesuaian / Opname</option>
+            <option value="RUSAK">Barang Rusak</option>
+            <option value="HILANG">Barang Hilang</option>
+            <option value="KADALUARSA">Kadaluarsa</option>
+          </select>
+
+          <input type="date" id="mutation-date-filter" class="px-3 py-1.5 border border-gray-300 rounded-lg">
+        </div>
+
+        <div class="flex items-center gap-2 self-end sm:self-center">
+          <a href="/api/mutations/export/excel" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold border border-gray-300 transition">
+            📥 Ekspor Excel
+          </a>
+          <button onclick="MutationsManager.openManualMutationModal()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition">
+            ➕ Catat Mutasi Manual
+          </button>
+        </div>
+      </div>
+
+      <!-- MUTATIONS TABLE -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="bg-gray-100 text-xs font-bold text-gray-600 uppercase tracking-wider border-b">
+              <tr>
+                <th class="py-3 px-3">Tanggal</th>
+                <th class="py-3 px-3">Produk</th>
+                <th class="py-3 px-3">Tipe</th>
+                <th class="py-3 px-3">Alasan</th>
+                <th class="py-3 px-3 text-center">Jumlah</th>
+                <th class="py-3 px-3 text-center">Stok Sebelum &rarr; Sesudah</th>
+                <th class="py-3 px-3">No. Ref</th>
+                <th class="py-3 px-3">Keterangan</th>
+                <th class="py-3 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="mutations-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+
+          <div id="mutations-empty" class="p-10 text-center text-gray-400 hidden">
+            Tidak ada riwayat mutasi stok.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 5: RIWAYAT TRANSAKSI PENJUALAN (STRUK)                     -->
+    <!-- ============================================================== -->
+    <section id="panel-sales-history" class="tab-panel hidden space-y-5">
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto text-xs">
+          <input type="text" id="sales-hist-search" placeholder="Cari No. Faktur / Pelanggan..."
+                 class="px-3.5 py-2 border border-gray-300 rounded-lg text-sm w-64">
+          <input type="date" id="sales-hist-date" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="bg-gray-100 text-xs font-bold text-gray-600 uppercase tracking-wider border-b">
+              <tr>
+                <th class="py-3 px-3">No. Faktur</th>
+                <th class="py-3 px-3">Tanggal</th>
+                <th class="py-3 px-3">Pelanggan</th>
+                <th class="py-3 px-3 text-center">Tipe Harga</th>
+                <th class="py-3 px-3 text-right">Total Omset</th>
+                <th class="py-3 px-3 text-right">Total Modal (HPP)</th>
+                <th class="py-3 px-3 text-right">Keuntungan Bersih</th>
+                <th class="py-3 px-3 text-center">Bayar</th>
+                <th class="py-3 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="sales-hist-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+
+          <div id="sales-hist-empty" class="p-10 text-center text-gray-400 hidden">
+            Belum ada data penjualan.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 6: REKAP & LAPORAN LABA RUGI                              -->
+    <!-- ============================================================== -->
+    <section id="panel-reports" class="tab-panel hidden space-y-6">
+      
+      <!-- RECAP PERIOD SELECTOR BAR -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+            <button class="report-period-btn px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 transition" data-period="daily">📅 Harian</button>
+            <button class="report-period-btn px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 transition" data-period="weekly">📆 Mingguan</button>
+            <button class="report-period-btn px-3 py-1.5 rounded-lg bg-blue-600 text-white transition" data-period="monthly">🗓️ Bulanan</button>
+            <button class="report-period-btn px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 transition" data-period="yearly">📊 Tahunan</button>
+            <button class="report-period-btn px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 transition" data-period="custom">🔍 Rentang Kustom</button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-export-excel-report" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+              <span>📥</span> Ekspor Excel (.xlsx)
+            </button>
+            <button id="btn-print-report" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+              <span>🖨️</span> Cetak Laporan
+            </button>
+          </div>
+        </div>
+
+        <!-- CONDITIONAL DATE PICKERS -->
+        <div class="pt-2 border-t border-gray-100 flex items-center gap-3 text-xs">
+          <div id="picker-daily" class="hidden flex items-center gap-2">
+            <span class="font-semibold text-gray-700">Pilih Tanggal:</span>
+            <input type="date" id="report-daily-date" class="px-2.5 py-1 border border-gray-300 rounded font-medium">
+          </div>
+
+          <div id="picker-weekly" class="hidden flex items-center gap-2">
+            <span class="font-semibold text-gray-700">Pilih Tanggal dalam Minggu:</span>
+            <input type="date" id="report-weekly-date" class="px-2.5 py-1 border border-gray-300 rounded font-medium">
+          </div>
+
+          <div id="picker-monthly" class="flex items-center gap-2">
+            <span class="font-semibold text-gray-700">Pilih Bulan & Tahun:</span>
+            <input type="month" id="report-monthly-month" class="px-2.5 py-1 border border-gray-300 rounded font-medium">
+          </div>
+
+          <div id="picker-yearly" class="hidden flex items-center gap-2">
+            <span class="font-semibold text-gray-700">Pilih Tahun:</span>
+            <input type="number" id="report-yearly-year" min="2020" max="2050" class="w-24 px-2.5 py-1 border border-gray-300 rounded font-medium">
+          </div>
+
+          <div id="picker-custom" class="hidden flex items-center gap-2 flex-wrap">
+            <span class="font-semibold text-gray-700">Dari:</span>
+            <input type="date" id="report-custom-start" class="px-2 py-1 border border-gray-300 rounded">
+            <span class="font-semibold text-gray-700">Sampai:</span>
+            <input type="date" id="report-custom-end" class="px-2 py-1 border border-gray-300 rounded">
+          </div>
+
+          <div class="ml-auto font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded border border-blue-200" id="report-display-title">
+            Bulanan
+          </div>
+        </div>
+      </div>
+
+      <!-- BIG KPI SUMMARY CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- TOTAL OMSET -->
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+          <div class="text-xs font-bold text-gray-500 uppercase tracking-wide">Total Omset Penjualan</div>
+          <div id="rep-revenue" class="text-2xl font-black text-gray-900 mt-1">Rp 0</div>
+          <div id="rep-transactions" class="text-xs text-gray-500 mt-1">0 Transaksi</div>
+        </div>
+
+        <!-- TOTAL MODAL (HPP) -->
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+          <div class="text-xs font-bold text-gray-500 uppercase tracking-wide">Total Modal (HPP Terjual)</div>
+          <div id="rep-cost" class="text-2xl font-black text-gray-600 mt-1">Rp 0</div>
+          <div class="text-xs text-gray-500 mt-1">Biaya modal barang yang laku</div>
+        </div>
+
+        <!-- TOTAL KEUNTUNGAN BERSIH (LABA) -->
+        <div class="bg-green-50/70 p-5 rounded-xl border border-green-300 shadow-sm">
+          <div class="text-xs font-black text-green-800 uppercase tracking-wide">Total Keuntungan Bersih (Laba)</div>
+          <div id="rep-profit" class="text-2xl font-black text-green-700 mt-1">+Rp 0</div>
+          <div id="rep-margin" class="text-xs font-bold text-green-800 mt-1">0% Margin Laba</div>
+        </div>
+
+        <!-- TOTAL RESTOK / KULAKAN -->
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+          <div class="text-xs font-bold text-gray-500 uppercase tracking-wide">Total Kulakan (Restok)</div>
+          <div id="rep-purchases" class="text-2xl font-black text-purple-700 mt-1">Rp 0</div>
+          <div class="text-xs text-gray-500 mt-1">Barang masuk pada periode ini</div>
+        </div>
+      </div>
+
+      <!-- PRICE TIER BREAKDOWN: GROSIR VS ECERAN -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+        <h4 class="font-bold text-gray-800 text-sm">Perbandingan Laba: Penjualan Eceran vs Grosir</h4>
+        <div id="rep-tier-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+      </div>
+
+      <!-- CHART VISUALIZATION: OMSET VS MODAL VS LABA -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+        <h4 class="font-bold text-gray-800 text-sm">Grafik Tren: Penjualan (Omset) vs Modal (HPP) vs Keuntungan Bersih (Laba)</h4>
+        <div class="h-72 w-full">
+          <canvas id="report-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- TOP PRODUCTS & TIMELINE TABLES -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- TOP PRODUCTS TABLE -->
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+          <h4 class="font-bold text-gray-800 text-sm">Top 10 Produk Penyumbang Laba Terbesar</h4>
+          <div class="border border-gray-200 rounded-lg overflow-x-auto max-h-80">
+            <table class="w-full text-left">
+              <thead class="bg-gray-100 text-[11px] font-bold text-gray-600 uppercase border-b">
+                <tr>
+                  <th class="py-2 px-2 text-center">#</th>
+                  <th class="py-2 px-3">Produk</th>
+                  <th class="py-2 px-3 text-center">Terjual</th>
+                  <th class="py-2 px-3 text-right">Omset</th>
+                  <th class="py-2 px-3 text-right">Laba</th>
+                </tr>
+              </thead>
+              <tbody id="rep-top-products-tbody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TIMELINE BREAKDOWN TABLE -->
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+          <h4 class="font-bold text-gray-800 text-sm">Rincian Laba per Periode (Harian/Bulanan)</h4>
+          <div class="border border-gray-200 rounded-lg overflow-x-auto max-h-80">
+            <table class="w-full text-left">
+              <thead class="bg-gray-100 text-[11px] font-bold text-gray-600 uppercase border-b">
+                <tr>
+                  <th class="py-2 px-3">Tanggal / Bulan</th>
+                  <th class="py-2 px-3 text-center">Trx</th>
+                  <th class="py-2 px-3 text-right">Omset</th>
+                  <th class="py-2 px-3 text-right">Modal</th>
+                  <th class="py-2 px-3 text-right">Laba Bersih</th>
+                </tr>
+              </thead>
+              <tbody id="rep-timeline-tbody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 7: PENGATURAN TOKO & STRUK                                 -->
+    <!-- ============================================================== -->
+    <section id="panel-settings" class="tab-panel hidden space-y-6">
+      
+      <!-- GRID 2 KOLOM: IDENTITAS TOKO & CADANGAN GOOGLE DRIVE -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- KARTU 1: PENGATURAN IDENTITAS TOKO -->
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+          <div class="border-b pb-3">
+            <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+              <span>🏪</span> Identitas Toko & Format Struk
+            </h3>
+            <p class="text-xs text-gray-500 mt-0.5">Informasi ini dicetak di bagian atas dan bawah struk pembayaran.</p>
+          </div>
+
+          <form id="settings-form" class="space-y-3.5 text-xs">
+            <div>
+              <label class="block font-semibold text-gray-700 mb-1">Nama Toko:</label>
+              <input type="text" id="setting-store-name" required
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-bold focus:ring-1 focus:ring-blue-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-gray-700 mb-1">Alamat Toko:</label>
+              <input type="text" id="setting-store-address"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-gray-700 mb-1">No. WhatsApp / Telepon:</label>
+              <input type="text" id="setting-store-phone"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-gray-700 mb-1">Catatan Kaki Struk (Footer Text):</label>
+              <textarea id="setting-receipt-footer" rows="2"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="pt-2">
+              <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                <span>💾</span> Simpan Pengaturan Toko
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- KARTU 2: CADANGAN GOOGLE DRIVE & EMAIL (CLOUD BACKUP) -->
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+          <div class="border-b pb-3 flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+                <span>☁️</span> Cadangan Google Drive & Cloud
+              </h3>
+              <p class="text-xs text-gray-500 mt-0.5">Amankan data toko Anda selamanya ke Google Drive dan Email.</p>
+            </div>
+            <span class="px-2.5 py-1 bg-green-100 text-green-800 text-[11px] font-bold rounded-full">Aman & Terlindungi</span>
+          </div>
+
+          <div id="last-backup-info" class="text-xs font-semibold text-gray-500 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+            Cadangan terakhir: Belum pernah dilakukan
+          </div>
+
+          <!-- OPSI A: GOOGLE DRIVE FOR DESKTOP (FOLDER SINKRONISASI) -->
+          <div class="p-4 bg-blue-50/60 rounded-xl border border-blue-200 space-y-2.5 text-xs">
+            <div class="font-bold text-blue-900 flex items-center gap-1.5">
+              <span>📁</span> Opsi 1: Sinkronisasi Otomatis ke Google Drive Komputer
+            </div>
+            <p class="text-gray-600">
+              Jika Anda memasang aplikasi <em>Google Drive for Desktop</em>, masukkan lokasi folder sinkronisasi Google Drive Anda (misal di drive <code class="bg-white px-1 py-0.5 rounded border font-mono">G:\My Drive\Backup Toko</code>):
+            </p>
+            <div class="flex items-center gap-2">
+              <input type="text" id="setting-gdrive-folder" placeholder="G:\My Drive\Backup Toko"
+                     class="flex-1 px-3 py-1.5 border border-blue-300 rounded-lg bg-white font-mono text-xs">
+              <button id="btn-backup-gdrive" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow transition flex items-center gap-1.5 whitespace-nowrap">
+                <span>☁️</span> Cadangkan ke Drive
+              </button>
+            </div>
+          </div>
+
+          <!-- OPSI B: UNDUH FILE CADANGAN LANGSUNG -->
+          <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2 text-xs">
+            <div class="font-bold text-gray-800 flex items-center gap-1.5">
+              <span>📥</span> Opsi 2: Unduh File Cadangan Database (.db) Sekali Klik
+            </div>
+            <p class="text-gray-500">
+              Unduh salinan file database ke komputer Anda. File ini bisa langsung Anda drag-and-drop / upload ke <a href="https://drive.google.com" target="_blank" class="text-blue-600 underline font-semibold">drive.google.com</a> melalui browser.
+            </p>
+            <button id="btn-backup-download" class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg font-bold shadow transition flex items-center gap-1.5">
+              <span>⬇️</span> Unduh File Cadangan Database (.db)
+            </button>
+          </div>
+
+          <!-- OPSI C: KIRIM CADANGAN KE EMAIL GMAIL -->
+          <div class="p-4 bg-purple-50/60 rounded-xl border border-purple-200 space-y-2.5 text-xs">
+            <div class="font-bold text-purple-900 flex items-center gap-1.5">
+              <span>✉️</span> Opsi 3: Kirim Cadangan & Laporan ke Gmail
+            </div>
+            <p class="text-gray-600">
+              Kirim file cadangan dan rekap keuntungan langsung ke email Gmail Anda. Dari Gmail, ada tombol langsung <strong>"Simpan ke Drive"</strong>.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block font-semibold text-gray-700 mb-0.5">Email Pengirim (Gmail):</label>
+                <input type="email" id="setting-smtp-user" placeholder="tokoanda@gmail.com" class="w-full px-2.5 py-1 border border-purple-300 rounded bg-white">
+              </div>
+              <div>
+                <label class="block font-semibold text-gray-700 mb-0.5">Sandi Aplikasi Gmail (16 digit):</label>
+                <input type="password" id="setting-smtp-pass" placeholder="xxxx xxxx xxxx xxxx" class="w-full px-2.5 py-1 border border-purple-300 rounded bg-white">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-gray-700 mb-0.5">Email Penerima Cadangan:</label>
+              <input type="email" id="setting-target-email" placeholder="pemilik@gmail.com" class="w-full px-2.5 py-1 border border-purple-300 rounded bg-white">
+            </div>
+            <button id="btn-backup-email" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow transition flex items-center gap-1.5">
+              <span>🚀</span> Kirim Cadangan ke Email Sekarang
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- KARTU 3: PULIHKAN DATA DARI CADANGAN GOOGLE DRIVE (RESTORE) -->
+      <div class="max-w-xl bg-white p-6 rounded-xl border border-red-200 shadow-sm space-y-3 text-xs">
+        <div class="border-b border-red-100 pb-2 flex items-center gap-2 text-red-700 font-bold text-sm">
+          <span>🔄</span> Pulihkan Data Database dari Google Drive (Restore)
+        </div>
+        <p class="text-gray-600">
+          Gunakan fitur ini jika Anda baru saja menginstall ulang komputer, ganti komputer baru, atau ingin mengembalikan seluruh data toko dari file cadangan yang sebelumnya disimpan di Google Drive.
+        </p>
+        <form id="restore-db-form" class="space-y-3">
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Pilih File Cadangan Database (.db):</label>
+            <input type="file" id="restore-db-file" accept=".db" required
+                   class="w-full px-3 py-1.5 border border-gray-300 rounded-lg bg-gray-50">
+          </div>
+          <button type="submit" id="btn-restore-db" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow transition flex items-center gap-1.5">
+            <span>⚠️</span> Mulai Pulihkan Database
+          </button>
+        </form>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: CETAK STRUK KASIR (THERMAL 58mm / 80mm)                 -->
+  <!-- ============================================================== -->
+  <div id="receipt-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-bold text-gray-900 text-sm">🧾 Pratinjau Struk Pembayaran</h3>
+        <button onclick="App.closeModal('receipt-modal')" class="text-gray-400 hover:text-gray-600 font-bold text-lg">&times;</button>
+      </div>
+
+      <!-- Size Switcher -->
+      <div class="flex items-center justify-center gap-2 text-xs">
+        <span class="text-gray-500 font-semibold">Ukuran Kertas:</span>
+        <button onclick="POS.renderReceiptPreview(POS.lastTransaction, '58mm')" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 rounded font-bold">58 mm (Standar)</button>
+        <button onclick="POS.renderReceiptPreview(POS.lastTransaction, '80mm')" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 rounded font-bold">80 mm (Lebar)</button>
+      </div>
+
+      <!-- Preview Box -->
+      <div class="bg-gray-50 p-4 border border-dashed border-gray-300 rounded-xl overflow-y-auto flex-1 shadow-inner flex justify-center">
+        <div id="receipt-preview-content" class="w-full"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 pt-2">
+        <button onclick="POS.printReceipt()" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-1.5">
+          <span>🖨️</span> Cetak Sekarang
+        </button>
+        <button onclick="App.closeModal('receipt-modal')" class="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-semibold text-sm transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: ADD / EDIT PRODUCT FULL                                 -->
+  <!-- ============================================================== -->
+  <div id="product-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 id="modal-product-title" class="font-bold text-gray-900 text-base">Tambah Produk Baru</h3>
+        <button onclick="App.closeModal('product-modal')" class="text-gray-400 hover:text-gray-600 font-bold text-lg">&times;</button>
+      </div>
+
+      <form id="product-form" class="space-y-3 text-xs">
+        <input type="hidden" id="prod-id">
+
+        <input type="hidden" id="prod-barcode" value="">
+
+        <!-- NAMA PRODUK & KATEGORI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Nama Produk:</label>
+            <input type="text" id="prod-name" required placeholder="Contoh: Surya 16, Aqua 600ml, Promag..." class="w-full px-3 py-2 border border-gray-300 rounded-lg font-bold text-sm">
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Kategori Barang:</label>
+            <input type="text" id="prod-category" placeholder="Rokok, Obat, Minuman, Jajan, Mie..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          </div>
+        </div>
+
+        <!-- PILIHAN SATUAN STOK (Biji, Pres, Box, Dus) -->
+        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+          <label class="block font-bold text-gray-800">Pilih Kemasan Utama Barang:</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button type="button" onclick="ProductsManager.selectUnit('Pres')" data-unit="Pres"
+                    class="unit-picker-btn p-2 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-left transition text-xs">
+              <div class="font-bold text-amber-900">🚬 Pres</div>
+              <div class="text-[10px] text-amber-700">Rokok (Isi 10)</div>
+            </button>
+            <button type="button" onclick="ProductsManager.selectUnit('Box')" data-unit="Box"
+                    class="unit-picker-btn p-2 rounded-lg border border-purple-300 bg-purple-50 hover:bg-purple-100 text-left transition text-xs">
+              <div class="font-bold text-purple-900">💊 Box</div>
+              <div class="text-[10px] text-purple-700">Obat & Jajan</div>
+            </button>
+            <button type="button" onclick="ProductsManager.selectUnit('Dus')" data-unit="Dus"
+                    class="unit-picker-btn p-2 rounded-lg border border-orange-300 bg-orange-50 hover:bg-orange-100 text-left transition text-xs">
+              <div class="font-bold text-orange-900">📦 Dus</div>
+              <div class="text-[10px] text-orange-700">Aqua / Minuman / Mie</div>
+            </button>
+            <button type="button" onclick="ProductsManager.selectUnit('Biji')" data-unit="Biji"
+                    class="unit-picker-btn p-2 rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-left transition text-xs">
+              <div class="font-bold text-blue-900">🔵 Biji</div>
+              <div class="text-[10px] text-blue-700">Eceran Langsung</div>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5 pt-1">
+            <div>
+              <label class="block text-gray-600 text-[11px] font-semibold mb-0.5">Satuan Besar:</label>
+              <input type="text" id="prod-unit-large" value="Dus" required
+                     class="w-full px-2.5 py-1.5 border border-gray-300 rounded font-bold text-orange-800 bg-white text-xs">
+            </div>
+            <div>
+              <label class="block text-gray-600 text-[11px] font-semibold mb-0.5">Isi Eceran per Satuan:</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="prod-conversion-qty" value="24" min="1" required
+                       class="w-full px-2.5 py-1.5 border border-blue-300 rounded font-bold text-blue-800 bg-white text-xs">
+                <span class="text-gray-500 font-semibold text-[11px]">Biji</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-gray-600 text-[11px] font-semibold mb-0.5">Batas Min. Stok (Biji):</label>
+              <input type="number" id="prod-min-stock" value="10" min="1"
+                     class="w-full px-2.5 py-1.5 border border-gray-300 rounded font-bold text-gray-800 bg-white text-xs">
+            </div>
+          </div>
+        </div>
+
+        <!-- HARGA MODAL (HPP) BESAR & ECERAN -->
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-2">
+          <label class="block font-bold text-amber-900">Harga Modal Beli / Kulakan (HPP):</label>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label id="prod-cost-large-label" class="block text-[11px] font-semibold text-amber-800 mb-0.5">Modal per Dus (Rp):</label>
+              <input type="number" id="prod-cost-price-large" min="0" placeholder="0" class="w-full px-2.5 py-1.5 border border-amber-300 rounded font-bold text-amber-900 bg-white text-sm">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-amber-800 mb-0.5">Modal Eceran per Biji (Rp):</label>
+              <input type="number" id="prod-cost-price" required min="0" placeholder="0" class="w-full px-2.5 py-1.5 border border-amber-300 rounded font-bold text-amber-900 bg-white text-sm">
+            </div>
+          </div>
+          <span class="block text-[10px] text-amber-700">Modal eceran dan modal besar akan saling terhitung otomatis berdasarkan jumlah isi.</span>
+        </div>
+
+        <!-- HARGA JUAL DUA TIPE: ECERAN & GROSIR -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-3 bg-blue-50 rounded-xl border border-blue-200">
+            <label class="block font-bold text-blue-900 mb-1">Harga Eceran (per Biji):</label>
+            <input type="number" id="prod-retail-price" required min="0" placeholder="Harga jual eceran..." class="w-full px-3 py-1.5 border border-blue-300 rounded-lg text-sm font-bold text-blue-900 bg-white">
+          </div>
+          <div class="p-3 bg-purple-50 rounded-xl border border-purple-200">
+            <label id="prod-wholesale-label" class="block font-bold text-purple-900 mb-1">Harga Grosir (per Dus):</label>
+            <input type="number" id="prod-wholesale-price" required min="0" placeholder="Harga jual grosir..." class="w-full px-3 py-1.5 border border-purple-300 rounded-lg text-sm font-bold text-purple-900 bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Min. Qty Grosir (Opsional):</label>
+            <input type="number" id="prod-min-wholesale" value="1" class="w-full px-3 py-1.5 border border-gray-300 rounded">
+          </div>
+          <div id="prod-stock-container">
+            <label class="block font-semibold text-gray-700 mb-1">Stok Awal Saat Ini:</label>
+            <div class="grid grid-cols-2 gap-1.5">
+              <input type="number" id="prod-stock-large" min="0" value="0" placeholder="Jml Dus" class="w-full px-2 py-1.5 border border-gray-300 rounded font-bold text-xs" title="Jumlah Satuan Besar">
+              <input type="number" id="prod-stock-small" min="0" value="0" placeholder="Jml Biji" class="w-full px-2 py-1.5 border border-gray-300 rounded font-bold text-xs" title="Jumlah Biji Eceran">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="App.closeModal('product-modal')" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold">
+            Batal
+          </button>
+          <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow">
+            Simpan Data Produk
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: QUICK EDIT MODAL (HPP)                                  -->
+  <!-- ============================================================== -->
+  <div id="quick-cost-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-bold text-gray-900 text-sm">✏️ Ubah Harga Modal (HPP)</h3>
+        <button onclick="App.closeModal('quick-cost-modal')" class="text-gray-400 hover:text-gray-600 font-bold">&times;</button>
+      </div>
+
+      <form id="quick-cost-form" class="space-y-3 text-xs">
+        <input type="hidden" id="quick-cost-id">
+        <div>
+          <span class="text-gray-500">Nama Produk:</span>
+          <div id="quick-cost-name" class="font-bold text-sm text-gray-800 mt-0.5"></div>
+          <div id="quick-cost-unit-info" class="text-xs text-gray-500 mt-0.5"></div>
+        </div>
+
+        <!-- DUAL COST INPUT -->
+        <div class="p-3 bg-amber-50/70 rounded-xl border border-amber-200 space-y-2.5">
+          <div id="quick-cost-large-wrap">
+            <label id="quick-cost-large-label" class="block font-bold text-amber-900 mb-1">Modal per Dus (Rp):</label>
+            <input type="number" id="quick-cost-large-input" min="0" class="w-full px-3 py-1.5 border border-amber-300 rounded font-bold text-amber-900 bg-white text-sm focus:ring-1 focus:ring-amber-500">
+          </div>
+          <div>
+            <label id="quick-cost-small-label" class="block font-bold text-amber-900 mb-1">Modal Eceran per Biji (Rp):</label>
+            <input type="number" id="quick-cost-small-input" required min="0" class="w-full px-3 py-1.5 border border-amber-300 rounded font-bold text-amber-900 bg-white text-sm focus:ring-1 focus:ring-amber-500">
+          </div>
+        </div>
+
+        <p class="text-[11px] text-gray-500">Ketik salah satu kolom di atas, kolom lainnya akan otomatis terhitung.</p>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="App.closeModal('quick-cost-modal')" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded font-semibold">Batal</button>
+          <button type="submit" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold shadow">Simpan Modal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: QUICK EDIT STOK (STOCK OPNAME)                           -->
+  <!-- ============================================================== -->
+  <div id="quick-stock-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-bold text-gray-900 text-sm">✏️ Penyesuaian Stok (Stock Opname)</h3>
+        <button onclick="App.closeModal('quick-stock-modal')" class="text-gray-400 hover:text-gray-600 font-bold">&times;</button>
+      </div>
+
+      <form id="quick-stock-form" class="space-y-3 text-xs">
+        <input type="hidden" id="quick-stock-id">
+        <div>
+          <span class="text-gray-500">Produk:</span>
+          <div id="quick-stock-name" class="font-bold text-sm text-gray-800 mt-0.5"></div>
+          <div class="text-xs text-gray-500 mt-0.5">Stok Saat Ini di Sistem: <span id="quick-stock-current" class="font-bold text-blue-700">0</span></div>
+        </div>
+
+        <!-- DUAL STOCK INPUT (DUS/PRES/BOX + BIJI) -->
+        <div class="p-3 bg-blue-50/70 rounded-xl border border-blue-200 space-y-2">
+          <div class="text-[11px] font-bold text-blue-900">Hitung Stok Fisik Riil:</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div id="quick-stock-large-wrap">
+              <label id="quick-stock-large-label" class="block text-[11px] font-bold text-gray-700 mb-0.5">Dus / Karton:</label>
+              <input type="number" id="quick-stock-large-input" min="0" value="0" class="w-full px-2.5 py-1.5 border border-blue-300 rounded font-bold text-blue-900 text-sm bg-white">
+            </div>
+            <div>
+              <label id="quick-stock-small-label" class="block text-[11px] font-bold text-gray-700 mb-0.5">Biji (Eceran):</label>
+              <input type="number" id="quick-stock-small-input" min="0" value="0" class="w-full px-2.5 py-1.5 border border-blue-300 rounded font-bold text-blue-900 text-sm bg-white">
+            </div>
+          </div>
+          <div class="text-[11px] text-gray-600 flex items-center justify-between pt-1 border-t border-blue-200">
+            <span>Total Hasil Hitungan:</span>
+            <span id="quick-stock-calc-preview" class="font-bold text-blue-800">0 Biji</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Alasan Penyesuaian:</label>
+          <select id="quick-stock-reason" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg bg-white font-medium">
+            <option value="PENYESUAIAN">Penyesuaian / Salah Hitung (Opname)</option>
+            <option value="RUSAK">Barang Rusak</option>
+            <option value="HILANG">Barang Hilang / Selisih</option>
+            <option value="KADALUARSA">Kadaluarsa</option>
+            <option value="LAINNYA">Lainnya</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Catatan / Keterangan:</label>
+          <input type="text" id="quick-stock-notes" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg" placeholder="Hasil cek fisik toko">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="App.closeModal('quick-stock-modal')" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded font-semibold">Batal</button>
+          <button type="submit" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold shadow">Perbarui Stok</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: MANUAL MUTATION (BARANG RUSAK/HILANG/MASUK)             -->
+  <!-- ============================================================== -->
+  <div id="manual-mutation-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-bold text-gray-900 text-sm">➕ Catat Mutasi Masuk / Keluar Manual</h3>
+        <button onclick="App.closeModal('manual-mutation-modal')" class="text-gray-400 hover:text-gray-600 font-bold">&times;</button>
+      </div>
+
+      <form id="manual-mutation-form" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Pilih Produk:</label>
+          <select id="manual-mut-product" required class="w-full px-3 py-1.5 border border-gray-300 rounded-lg bg-white font-medium"></select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Jenis Mutasi:</label>
+            <select id="manual-mut-type" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg bg-white font-bold">
+              <option value="KELUAR">KELUAR (-)</option>
+              <option value="MASUK">MASUK (+)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Alasan / Penyebab:</label>
+            <select id="manual-mut-reason" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg bg-white font-semibold">
+              <option value="RUSAK">Barang Rusak</option>
+              <option value="HILANG">Barang Hilang</option>
+              <option value="KADALUARSA">Kadaluarsa</option>
+              <option value="BONUS">Bonus / Hadiah Supplier</option>
+              <option value="PENYESUAIAN">Penyesuaian Manual</option>
+              <option value="LAINNYA">Lain-lain</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Jumlah (Qty):</label>
+            <input type="number" id="manual-mut-qty" required min="1" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-700 mb-1">Tanggal:</label>
+            <input type="date" id="manual-mut-date" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Keterangan / Catatan:</label>
+          <textarea id="manual-mut-notes" rows="2" placeholder="Contoh: Pecah saat bongkar muat..." class="w-full px-3 py-1.5 border border-gray-300 rounded-lg"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="App.closeModal('manual-mutation-modal')" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded font-semibold">Batal</button>
+          <button type="submit" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold shadow">Simpan Mutasi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: EDIT MUTATION NOTE                                      -->
+  <!-- ============================================================== -->
+  <div id="edit-mutation-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 id="edit-mut-title" class="font-bold text-gray-900 text-sm">Edit Catatan Mutasi</h3>
+        <button onclick="App.closeModal('edit-mutation-modal')" class="text-gray-400 hover:text-gray-600 font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <input type="hidden" id="edit-mut-id">
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Alasan / Kategori:</label>
+          <input type="text" id="edit-mut-reason" class="w-full px-3 py-1.5 border border-gray-300 rounded font-medium">
+        </div>
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Tanggal:</label>
+          <input type="date" id="edit-mut-date" class="w-full px-3 py-1.5 border border-gray-300 rounded">
+        </div>
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Keterangan / Catatan:</label>
+          <textarea id="edit-mut-notes" rows="3" class="w-full px-3 py-1.5 border border-gray-300 rounded"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="App.closeModal('edit-mutation-modal')" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded font-semibold">Batal</button>
+          <button type="button" onclick="MutationsManager.saveEditMutation()" class="px-4 py-1.5 bg-blue-600 text-white rounded font-bold shadow">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: RINCIAN PEMBELIAN (PURCHASE DETAIL)                     -->
+  <!-- ============================================================== -->
+  <div id="purchase-detail-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-bold text-gray-900 text-sm">📥 Rincian Pembelian / Restok</h3>
+        <button onclick="App.closeModal('purchase-detail-modal')" class="text-gray-400 hover:text-gray-600 font-bold">&times;</button>
+      </div>
+      <div id="purchase-detail-content"></div>
+      <div class="flex justify-end pt-2 border-t">
+        <button onclick="App.closeModal('purchase-detail-modal')" class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded font-semibold text-xs">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- THERMAL RECEIPT PRINT AREA (Used by browser print engine only) -->
+  <div id="receipt-print-area"></div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container"></div>
+
+  <!-- SCRIPTS -->
+  <script src="js/app.js"></script>
+  <script src="js/pos.js"></script>
+  <script src="js/products.js"></script>
+  <script src="js/purchases.js"></script>
+  <script src="js/mutations.js"></script>
+  <script src="js/sales_history.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/settings.js"></script>
+  <script>
+    // Initialize date display & start App
+    document.addEventListener('DOMContentLoaded', () => {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', options);
+      App.init();
+    });
+  </script>
+</body>
+</html>
